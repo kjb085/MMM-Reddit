@@ -1,0 +1,125 @@
+$sprite_url: 'https://www.redditstatic.com/sprite-reddit.bTLvdEETokI.png';
+
+#mmm-reddit-slider {
+
+    .table {
+
+        td {
+            font-size: 20px;
+            vertical-align: middle;
+
+            &:not(:last-child) {
+                padding-right: 10px;
+            }
+
+            .rank {
+                width: 35px;
+                text-align: center;
+
+                &.colored {
+                    color: rgba(198,198,198, .5);
+                }
+            }
+
+            .score {
+                width: 50px;
+                text-align: center;
+
+                &.colored {
+                    color: #FF8B60;
+                }
+            }
+
+            &.title {
+                width: 100%;
+                line-height: 1.5;
+            }
+
+            &.details {
+                font-size: 14px;
+                line-height: 1.5;
+
+                .author {
+                    float: right;
+                }
+
+                .subreddit {
+                    float: right;
+                    margin-left: 10px;
+                }
+
+                .gilded {
+                    margin-left: 10px;
+
+                    &:before {
+                        display: inline-block;
+                        content: '';
+                        background-image: url($sprite_url);
+                        background-position: -84px -1647px;
+                        background-repeat: no-repeat;
+                        height: 14px;
+                        width: 13px;
+                        margin-right: 2px;
+                        vertical-align: -3px;
+                    }
+                }
+            }
+        }
+
+        .image-row {
+
+            &:not(:last-child) {
+                margin-bottom: 10px;
+            }
+
+            .feature-image {
+                width: 100%;
+
+                .image-container {
+                    width: 100%;
+                    overflow-y: hidden;
+
+                    img {
+                        max-width: 100%;
+                        display: block;
+                        margin: 0 auto;
+                    }
+                }
+            }
+        }
+
+        .text-row {
+
+            &:not(:last-child) {
+                border-bottom: 1px solid rgba(211,211,211, 0.5);
+                margin-bottom: 5px;
+            }
+
+            .thumbnail {
+
+                div {
+                    background-image: url($sprite_url);
+                    background-repeat: no-repeat;
+                    height: 50px;
+                    width: 70px;
+                }
+
+                .default {
+                    background-position: 0px -1099px;
+                }
+
+                .image {
+                    background-position: 0px -1043px;
+                }
+
+                .self {
+                    background-position: 0px -1267px;
+                }
+
+                .nsfw {
+                    background-position: 0px -1155px;
+                }
+            }
+        }
+    }
+}

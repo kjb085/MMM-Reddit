@@ -1,0 +1,73 @@
+#mmm-reddit-slider .table td {
+  font-size: 20px;
+  vertical-align: middle; }
+  #mmm-reddit-slider .table td:not(:last-child) {
+    padding-right: 10px; }
+  #mmm-reddit-slider .table td .rank {
+    width: 35px;
+    text-align: center; }
+    #mmm-reddit-slider .table td .rank.colored {
+      color: rgba(198, 198, 198, 0.5); }
+  #mmm-reddit-slider .table td .score {
+    width: 50px;
+    text-align: center; }
+    #mmm-reddit-slider .table td .score.colored {
+      color: #FF8B60; }
+  #mmm-reddit-slider .table td.title {
+    width: 100%;
+    line-height: 1.5; }
+  #mmm-reddit-slider .table td.details {
+    font-size: 14px;
+    line-height: 1.5; }
+    #mmm-reddit-slider .table td.details .author {
+      float: right; }
+    #mmm-reddit-slider .table td.details .subreddit {
+      float: right;
+      margin-left: 10px; }
+    #mmm-reddit-slider .table td.details .gilded {
+      margin-left: 10px; }
+      #mmm-reddit-slider .table td.details .gilded:before {
+        display: inline-block;
+        content: '';
+        background-image: url("https://www.redditstatic.com/sprite-reddit.bTLvdEETokI.png");
+        background-position: -84px -1647px;
+        background-repeat: no-repeat;
+        height: 14px;
+        width: 13px;
+        margin-right: 2px;
+        vertical-align: -3px; }
+
+#mmm-reddit-slider .table .image-row:not(:last-child) {
+  margin-bottom: 10px; }
+
+#mmm-reddit-slider .table .image-row .feature-image {
+  width: 100%; }
+  #mmm-reddit-slider .table .image-row .feature-image .image-container {
+    width: 100%;
+    overflow-y: hidden; }
+    #mmm-reddit-slider .table .image-row .feature-image .image-container img {
+      max-width: 100%;
+      display: block;
+      margin: 0 auto; }
+
+#mmm-reddit-slider .table .text-row:not(:last-child) {
+  border-bottom: 1px solid rgba(211, 211, 211, 0.5);
+  margin-bottom: 5px; }
+
+#mmm-reddit-slider .table .text-row .thumbnail div {
+  background-image: url("https://www.redditstatic.com/sprite-reddit.bTLvdEETokI.png");
+  background-repeat: no-repeat;
+  height: 50px;
+  width: 70px; }
+
+#mmm-reddit-slider .table .text-row .thumbnail .default {
+  background-position: 0px -1099px; }
+
+#mmm-reddit-slider .table .text-row .thumbnail .image {
+  background-position: 0px -1043px; }
+
+#mmm-reddit-slider .table .text-row .thumbnail .self {
+  background-position: 0px -1267px; }
+
+#mmm-reddit-slider .table .text-row .thumbnail .nsfw {
+  background-position: 0px -1155px; }
