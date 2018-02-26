@@ -27,8 +27,6 @@ Just an installation of [Magic Mirror<sup>2</sup>](https://github.com/MichMich/M
 
 ![images](https://i.imgur.com/dvfqHiS.png)
 
-**Config**
-
 ```
 config: {
 	subreddit: 'earthporn',
