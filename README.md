@@ -1,6 +1,6 @@
 # MMM-Reddit #
 
-Module used to show top level reddit info for Magic Mirror<sup>2</sup>
+Module used to show top level reddit info for Magic Mirror<sup>2</sup>. The module is highly configurable and primarily allows users to choose between two display types, the number of posts pull from reddit, how many of those posts to display, how often to cycle through the set of posts, and how frequently to refresh posts from reddit, 
 
 ## End User Dependencies ##
 
