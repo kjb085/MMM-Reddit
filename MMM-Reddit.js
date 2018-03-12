@@ -6,6 +6,7 @@ Module.register('MMM-Reddit', {
     defaults: {
     	subreddit: 'all',
         type: 'hot',
+        postIdList: [],
         displayType: 'headlines', // Options: 'headlines', 'image' (for image, if post is album, only 1st image is shown)
         count: 10,
         show: 5,
@@ -169,7 +170,7 @@ Module.register('MMM-Reddit', {
         var wrapper = document.createElement('div'),
             posts = document.createElement('div');
             header = document.createElement('header'),
-            slider;
+            slider = null;
 
         wrapper.id = 'mmm-reddit';
         wrapper.style.width = this.config.width + 'px';
@@ -296,6 +297,8 @@ Module.register('MMM-Reddit', {
             tableWrapper.appendChild(table);
             slider.appendChild(tableWrapper);
         });
+
+        return slider;
     },
 
     /**

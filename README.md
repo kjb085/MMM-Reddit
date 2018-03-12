@@ -124,3 +124,5 @@ There is no timeline or guarantee than any of these will be accomplished. Willin
 * Add `gif` option as display type
   * Not sure if there's going to be a way to do this to ensure that the rotate doesn't fire before the gif is finished playing
 * Add feature to display portion of text posts for subs such as r/dadjokes
+* Add ability to allow user defined post ids for curated slideshow
+* Add ability to query a subreddit(s) for a given phrase and return top hits
