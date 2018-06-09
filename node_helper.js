@@ -45,10 +45,11 @@ module.exports = NodeHelper.create({
         if (notification === 'REDDIT_CONFIG') {
             this.config = payload.config;
             this.getData();
-            setInterval(() => {
-                this.getData();
-            }, this.config.updateInterval * 60 * 1000);
         }
+    },
+
+    sendData(obj) {
+        this.sendSocketNotification('REDDIT_POSTS', obj);
     },
 
     /**
@@ -84,7 +85,7 @@ module.exports = NodeHelper.create({
                             }
                         });
 
-                        this.sendSocketNotification('REDDIT_POSTS', { posts: posts });
+                        this.sendData({posts: posts});
                     } else {
                         this.sendError('No posts returned. Ensure the subreddit name is spelled correctly. ' +
                             'Private subreddits are also inaccessible');
