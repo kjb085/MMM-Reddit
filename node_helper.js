@@ -145,7 +145,7 @@ module.exports = NodeHelper.create({
 
         replacements.forEach((modifier) => {
             let caseSensitive = typeof modifier.caseSensitive !== 'undefined' ? modifier.caseSensitive : true,
-                caseFlag = caseSensitive ===  ? '' : 'i',
+                caseFlag = caseSensitive ? '' : 'i',
                 search = new RegExp(modifier.toReplace, 'g' + caseFlag),
                 replacement = modifier.replacement;
 
