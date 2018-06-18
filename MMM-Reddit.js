@@ -11,7 +11,7 @@ Module.register('MMM-Reddit', {
     defaults: {
     	subreddit: 'all',
         type: 'hot',
-        postIdList: [],
+        postIdList: [], // TODO: Implement this
         displayType: 'headlines', // Options: 'headlines', 'image' (for image, if post is album, only 1st image is shown)
         count: 10,
         show: 5,
@@ -19,6 +19,8 @@ Module.register('MMM-Reddit', {
         updateInterval: 15, // In minutes
         rotateInterval: 30, // In seconds
         forceImmediateUpdate: true,
+        characterLimit: null,
+        titleReplacements: [],
 
         // Toggles
         showHeader: true,
@@ -147,7 +149,9 @@ Module.register('MMM-Reddit', {
             type: this.config.type,
             displayType: this.config.displayType,
             count: this.config.count,
-            imageQuality: this.config.imageQuality
+            imageQuality: this.config.imageQuality,
+            characterLimit: this.config.characterLimit,
+            titleReplacements: this.config.titleReplacements
         };
 
         if (this.config.showAll) {

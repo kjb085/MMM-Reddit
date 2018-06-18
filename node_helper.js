@@ -30,7 +30,7 @@ module.exports = NodeHelper.create({
      *
      * @return {void}
      */
-    start() {
+    start () {
         console.log(`Starting module helper: ${this.name}`);
     },
 
@@ -41,14 +41,14 @@ module.exports = NodeHelper.create({
      * @param  {Object} payload
      * @return {void}
      */
-    socketNotificationReceived(notification, payload) {
+    socketNotificationReceived (notification, payload) {
         if (notification === 'REDDIT_CONFIG') {
             this.config = payload.config;
             this.getData();
         }
     },
 
-    sendData(obj) {
+    sendData (obj) {
         this.sendSocketNotification('REDDIT_POSTS', obj);
     },
 
@@ -57,8 +57,8 @@ module.exports = NodeHelper.create({
      *
      * @return {void}
      */
-    getData() {
-        var url = this.getUrl(this.config),
+    getData () {
+        let url = this.getUrl(this.config),
             posts = [],
             body;
 
@@ -68,9 +68,9 @@ module.exports = NodeHelper.create({
                 if (typeof body.data !== "undefined") {
                     if (typeof body.data.children !== "undefined") {
                         body.data.children.forEach((post) => {
-                            var temp = {};
+                            let temp = {};
 
-                            temp.title = post.data.title;
+                            temp.title = this.formatTitle(post.data.title);
                             temp.score = post.data.score;
                             temp.thumbnail = post.data.thumbnail;
                             temp.src = this.getImageUrl(post.data.preview, post.data.thumbnail),
@@ -105,8 +105,8 @@ module.exports = NodeHelper.create({
      * @param  {Object} config
      * @return {String}
      */
-    getUrl(config) {
-        var url = this.baseUrl,
+    getUrl (config) {
+        let url = this.baseUrl,
             subreddit = this.formatSubreddit(config.subreddit),
             type = config.type,
             count = config.count;
@@ -124,12 +124,43 @@ module.exports = NodeHelper.create({
      * @param  {String|Array} subreddit
      * @return {String}
      */
-    formatSubreddit(subreddit) {
+    formatSubreddit (subreddit) {
         if (Array.isArray(subreddit)) {
             subreddit = subreddit.join('+');
         }
 
         return subreddit;
+    },
+
+    /**
+     * Format the title to return to front end
+     *
+     * @param  {Object} post
+     * @return {String}
+     */
+    formatTitle (title) {
+        let replacements = this.config.titleReplacements,
+            limit = this.config.characterLimit,
+            originalLength = title.length;
+
+        replacements.forEach((modifier) => {
+            let caseSensitive = typeof modifier.caseSensitive !== 'undefined' ? modifier.caseSensitive : true,
+                caseFlag = caseSensitive ===  ? '' : 'i',
+                search = new RegExp(modifier.toReplace, 'g' + caseFlag),
+                replacement = modifier.replacement;
+
+            title = title.replace(search, replacement);
+        });
+
+        if (limit !== null) {
+            title = title.slice(0, limit).trim();
+
+            if (title.length !== originalLength) {
+                title += '...';
+            }
+        }
+
+        return title;
     },
 
     /**
@@ -139,12 +170,12 @@ module.exports = NodeHelper.create({
      * @param  {String} thumbnail
      * @return {String}
      */
-    getImageUrl(preview, thumbnail) {
+    getImageUrl (preview, thumbnail) {
         if (this.skipNonImagePost(preview, thumbnail)) {
             return null;
         }
 
-        var allPostImages = this.getAllImages(preview.images[0]),
+        let allPostImages = this.getAllImages(preview.images[0]),
             imageCount = allPostImages.length,
             qualityIndex = this.qualityIndex.indexOf(this.config.imageQuality),
             qualityPercent = qualityIndex / 4,
@@ -166,8 +197,8 @@ module.exports = NodeHelper.create({
      * @param  {String} thumbnail
      * @return {Boolean}
      */
-    skipNonImagePost(preview, thumbnail) {
-        var previewUndefined = typeof preview === "undefined",
+    skipNonImagePost (preview, thumbnail) {
+        let previewUndefined = typeof preview === "undefined",
             nonImageThumbnail = thumbnail.indexOf('http') === -1,
             hasImages, firstImageHasSource;
 
@@ -192,8 +223,8 @@ module.exports = NodeHelper.create({
      * @param  {Object} imageObj
      * @return {Array}
      */
-    getAllImages(imageObj) {
-        var imageSet = imageObj.resolutions,
+    getAllImages (imageObj) {
+        let imageSet = imageObj.resolutions,
             lastImage = imageSet.pop(),
             lastIsSource = lastImage.width === imageObj.source.width &&
                 lastImage.height === imageObj.source.height;
@@ -213,7 +244,7 @@ module.exports = NodeHelper.create({
      * @param  {String} error
      * @return {void}
      */
-    sendError(error) {
+    sendError (error) {
         console.log(error);
         this.sendSocketNotification('REDDIT_POSTS_ERROR', { message: error });
     },
