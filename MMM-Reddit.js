@@ -1,3 +1,8 @@
+/* Magic Mirror
+ * Module: MMM-Reddit
+ *
+ * By kjb085 https://github.com/kjb085/MMM-Reddit
+ */
 Module.register('MMM-Reddit', {
     /**
      * List of default configurations
@@ -13,6 +18,7 @@ Module.register('MMM-Reddit', {
         width: 400, // In pixels
         updateInterval: 15, // In minutes
         rotateInterval: 30, // In seconds
+        forceImmediateUpdate: true,
 
         // Toggles
         showHeader: true,
@@ -33,6 +39,9 @@ Module.register('MMM-Reddit', {
         maxImageHeight: 500, // In pixels
         imageQuality: 'mid-high', // Options: 'low', 'mid', 'mid-high', 'high'
         showTitle: true, // Non-configurable for text base subs
+
+        // Developer only
+        debug: false,
 	},
 
     /**
@@ -48,16 +57,49 @@ Module.register('MMM-Reddit', {
     postSets: [],
 
     /**
+     * List of all posts to be used on next post refresh
+     * @type {Array}
+     */
+    stagedPosts: [],
+
+    /**
+     * All posts broken into sets to be rendered to be used on next post refresh
+     * @type {Array}
+     */
+    stagedPostSets: [],
+
+    /**
+     * Set to true if there is a new set of posts waiting to be loaded
+     * NOTE: Only utitlized in the scenario where a post rotator is being utilized
+     * @type {Boolean}
+     */
+    waitingToDeploy: false,
+
+    /**
+     * Config file to send to the node helper
+     * @type {Object}
+     */
+    nodeHelperConfig: {},
+
+    /**
      * Index of post set currently being displayed
      * @type {Number}
      */
     currentPostSetIndex: 0,
 
     /**
-     * ID value of the interval timer
+     * Interval timer used to rotate the image/text posts on screen
      * @type {Number}
      */
     rotator: null,
+
+    /**
+     * Interval timer used to update the set of posts
+     * NOTE: Currently not being cleared or updated after initialized, but keeping
+     *       this out of consistency and for posterity's sake
+     * @type {Number}
+     */
+    updater: null,
 
     /**
      * Determines if the current results returned from reddit has content
@@ -66,11 +108,27 @@ Module.register('MMM-Reddit', {
     hasValidPosts: true,
 
     /**
+     * Timestamp of the most recent time that posts were received
+     * NOTE: For debugging purposes
+     * @type {Date}
+     */
+    receivedPostsTime: null,
+
+    /**
+     * Set of element id and class names for standardization
+     * @type {Object}
+     */
+    domElements: {
+        wrapperId: 'mmm-reddit-wrapper',
+        sliderId: 'mmm-reddit-slider',
+    },
+
+    /**
      * Return an array of CSS files to include
      *
      * @return {Array}
      */
-    getStyles() {
+    getStyles () {
         return [
             this.file('assets/MMM-Reddit.css'),
         ];
@@ -81,30 +139,60 @@ Module.register('MMM-Reddit', {
      *
      * @return {void}
      */
-    start() {
-        var noderHelperConfig = {
+    start () {
+        Log.info(`Starting module: ${this.name}`);
+
+        this.nodeHelperConfig = {
             subreddit: this.config.subreddit,
             type: this.config.type,
             displayType: this.config.displayType,
             count: this.config.count,
-            updateInterval: this.config.updateInterval,
             imageQuality: this.config.imageQuality
         };
 
-        Log.info(`Starting module: ${this.name}`);
-
         if (this.config.showAll) {
-            this.config.showRank = true;
-            this.config.showScore = true;
-            this.config.showThumbnail = true;
-            this.config.showTitle = true;
-            this.config.showNumComments = true;
-            this.config.showGilded = true;
-            this.config.showAuthor = true;
-            this.config.showSubreddit = true;
+            this.setConfigShowAll();
         }
 
-        this.sendSocketNotification('REDDIT_CONFIG', { config: noderHelperConfig });
+        this.initializeUpdate();
+        this.setUpdateInterval();
+    },
+
+    /**
+     * Set the interval used to pole the node helper and
+     * retrieve up to date posts from Reddit
+     *
+     * @return {void}
+     */
+    setUpdateInterval () {
+        this.updater = setInterval(() => {
+            this.initializeUpdate();
+        }, this.config.updateInterval * 60 * 1000);
+    },
+
+    /**
+     * Set all required variables to true for showAll functionality
+     *
+     * @return {void}
+     */
+    setConfigShowAll () {
+        this.config.showRank = true;
+        this.config.showScore = true;
+        this.config.showThumbnail = true;
+        this.config.showTitle = true;
+        this.config.showNumComments = true;
+        this.config.showGilded = true;
+        this.config.showAuthor = true;
+        this.config.showSubreddit = true;
+    },
+
+    /**
+     * Send config to node helper to wait on the retrieval of new posts
+     *
+     * @return {void}
+     */
+    initializeUpdate () {
+        this.sendSocketNotification('REDDIT_CONFIG', { config: this.nodeHelperConfig });
     },
 
     /**
@@ -114,21 +202,51 @@ Module.register('MMM-Reddit', {
      * @param  {Object} payload
      * @return {void}
      */
-    socketNotificationReceived(notification, payload) {
-        if (notification === 'REDDIT_POSTS') {
-            this.hasValidPosts = !!payload.posts.length,
-            this.posts = payload.posts;
-            this.postSets = this.getPostSets(this.posts, this.config.show);
+    socketNotificationReceived (notification, payload) {
+        // This is needed so that initializeRefreshDom doesn't wait
+        // for the existing rotator to invoke it
+        let isRotatingPosts = this.rotator !== null,
+            shouldUpdateImmediately = !isRotatingPosts || this.config.forceImmediateUpdate;
 
-            if (this.config.show < this.config.count && this.hasValidPosts) {
-                this.setRotateInterval();
-            }
+        if (notification === 'REDDIT_POSTS') {
+            this.handleReturnedPosts(payload);
         } else if (notification === 'REDDIT_POSTS_ERROR') {
-            this.hasValidPosts = false;
-            console.log(payload.message);
+            this.handlePostsError(payload);
         }
 
-        this.updateDom();
+        this.log(['is rotating', isRotatingPosts]);
+        this.log(['updating immediately', shouldUpdateImmediately]);
+
+        this.initializeRefreshDom(shouldUpdateImmediately);
+    },
+
+    /**
+     * Process a valid payload of posts returned from the node helper
+     *
+     * @param  {Object} payload
+     * @return {void}
+     */
+    handleReturnedPosts (payload) {
+        let hasValidPosts = !!payload.posts.length;
+
+        this.log(['Received posts from backend', hasValidPosts]);
+
+        this.hasValidPosts = hasValidPosts;
+        this.stagedPosts = payload.posts;
+        this.stagedPostSets = this.getPostSets(this.stagedPosts, this.config.show);
+        this.waitingToDeploy = true;
+        this.receivedPostsTime = new Date();
+    },
+
+    /**
+     * Perform error handling for a backend error
+     *
+     * @param  {Object} payload
+     * @return {void}
+     */
+    handlePostsError (payload) {
+        this.hasValidPosts = false;
+        this.log([payload.message]);
     },
 
     /**
@@ -138,11 +256,21 @@ Module.register('MMM-Reddit', {
      * @param  {Number} toShow
      * @return {Array}
      */
-    getPostSets(posts, toShow) {
-        var sets = [];
+    getPostSets (posts, toShow) {
+        let sets = [];
 
-        while (posts.length) {
-            sets.push(posts.splice(0, toShow));
+        // NOTE: Refactored away from using a while (posts.length) { sets.push(posts.splice(0, toShow))}
+        // due to a weird variable hoisting/variables passing by reference
+        // caused the payload posts array to be empty, despite posts rendering as expected
+        // Effectively, we leave this hear for future debugging purposes
+        for (let i = 0; i < posts.length; i += toShow) {
+            let temp = [];
+
+            for (let ii = i; ii < i + toShow; ii++) {
+                temp.push(posts[ii]);
+            }
+
+            sets.push(temp);
         }
 
         return sets;
@@ -150,11 +278,11 @@ Module.register('MMM-Reddit', {
 
     /**
      * Return a string to be used as header text
-     * NOTE: Not working currently, despite MM documentation - leaving for now
+     * TODO: Refactor this - ideally implement some sort of templatization
      *
      * @return {String}
      */
-    getHeader() {
+    getHeader () {
         if (this.config.showHeader) {
             // return `${this.config.type} posts from r/${this.config.subreddit}`;
             return this.getHeaderText();
@@ -162,45 +290,137 @@ Module.register('MMM-Reddit', {
     },
 
     /**
+     * Trigger DOM refresh if applicable
+     *
+     * @param  {Boolean} existingCycleIsComplete
+     * @return {void}
+     */
+    initializeRefreshDom (existingCycleIsComplete) {
+        // If nothing exists in the DOM
+        if (this.posts.length === 0) {
+            this.log(['posts have no length']);
+            // this.log([this.posts]);
+            this.triggerRefresh(false);
+        }
+        // If this is called from inside the rotator interval or if
+        // no rotator interval exists
+        else if (existingCycleIsComplete) {
+            this.log(['existing cycle complete']);
+            this.triggerRefresh(true);
+            this.logTimeBetweenReceiveAndRefresh();
+        }
+
+        // If existing cycle is not complete, this function will be called again by the rotator
+        // once the current cycle is complete
+    },
+
+    logTimeBetweenReceiveAndRefresh () {
+        let now = new Date(),
+            diff = now - this.receivedPostsTime;
+
+        this.log(['time difference', diff]);
+    },
+
+    /**
+     * Effectively a wrapper for updateDom, with additional logic
+     * to ensure that the DOM is correct and gracefully transitions
+     *
+     * @param  {Boolean} wrapperExists
+     * @return {void}
+     */
+    triggerRefresh (wrapperExists) {
+        this.deployPosts();
+        this.deleteWrapperElement(wrapperExists);
+        this.updateDom();
+        this.resetStagedPosts();
+
+        if (this.config.show < this.config.count && this.hasValidPosts) {
+            this.setRotateInterval();
+        }
+    },
+
+    /**
+     * Migrate staged posts and post sets to the active post and post sets
+     *
+     * @return {void}
+     */
+    deployPosts () {
+        this.log(['deploying posts']);
+        this.posts = this.stagedPosts;
+        this.postSets = this.stagedPostSets;
+    },
+
+    /**
+     * Clear out staged posts and post sets
+     *
+     * @return {void}
+     */
+    resetStagedPosts () {
+        this.log(['resetting staged posts']);
+        this.stagedPosts = [];
+        this.stagedPostSets = [];
+        this.waitingToDeploy = false;
+    },
+
+    /**
      * Get HTML element to be displayed
+     * NOTE: Refactor this - ideally implement some sort of templatization
      *
      * @return {Element}
      */
-    getDom() {
-        var wrapper = document.createElement('div'),
-            posts = document.createElement('div');
-            header = document.createElement('header'),
-            slider = null;
+    getDom () {
+        this.log('getting dom');
+        let wrapperDiv = document.createElement('div'),
+            postsDiv = document.createElement('div');
+            headerElement = document.createElement('header'),
+            sliderElement = null,
+            postSets = this.postSets;
 
-        wrapper.id = 'mmm-reddit';
-        wrapper.style.width = this.config.width + 'px';
+
+        wrapperDiv.id = this.domElements.wrapperId;
+        wrapperDiv.style.width = this.config.width + 'px';
 
         // Remove when getHeader is debugged
         if (this.config.showHeader) {
             // header.innerHTML = `${this.config.type} posts from r/${this.config.subreddit}`;
-            header.innerHTML = this.getHeaderText();
-            wrapper.appendChild(header);
+            headerElement.innerHTML = this.getHeaderText();
+            wrapperDiv.appendChild(headerElement);
         }
 
         if (!this.hasValidPosts) {
-            var text = document.createElement('div');
+            let text = document.createElement('div');
 
             text.innerHTML = 'No valid posts to display<br />Check the console for a full description of error.';
-            posts.appendChild(text);
+            postsDiv.appendChild(text);
         } else if (!this.postSets) {
-            var text = document.createElement('div');
+            let text = document.createElement('div');
 
             text.innerHTML = 'LOADING';
-            posts.appendChild(text);
+            postsDiv.appendChild(text);
         } else {
-            slider = this.getContentSlider()
+            sliderElement = this.getContentSlider(postSets);
 
-            posts.appendChild(slider);
+            postsDiv.appendChild(sliderElement);
         }
 
-        wrapper.appendChild(posts);
+        wrapperDiv.appendChild(postsDiv);
 
-        return wrapper;
+        return wrapperDiv;
+    },
+
+    /**
+     * Clear out the content of the wrapper (i.e. everything but the header)
+     *
+     * @param  {Boolean}
+     * @return {void}
+     */
+    deleteWrapperElement (wrapperExists) {
+        this.log(['deleting wrapper']);
+        if (wrapperExists) {
+            let wrapperDiv = document.getElementById(this.domElements.wrapperId);
+
+            wrapperDiv.remove();
+        }
     },
 
     /**
@@ -208,8 +428,8 @@ Module.register('MMM-Reddit', {
      *
      * @return {String}
      */
-    getHeaderText() {
-        var header = `${this.config.type} posts from `;
+    getHeaderText () {
+        let header = `${this.config.type} posts from `;
 
         if (this.config.subreddit === "frontpage" || this.config.subreddit === "") {
             header += "the frontpage";
@@ -232,8 +452,8 @@ Module.register('MMM-Reddit', {
      * @param  {Array} subs
      * @return {String}
      */
-    getMultiSubSentence(subs) {
-        var secondToLast = subs.length - 2,
+    getMultiSubSentence (subs) {
+        let secondToLast = subs.length - 2,
             text = "";
 
         subs.forEach((sub, idx) => {
@@ -255,8 +475,8 @@ Module.register('MMM-Reddit', {
      * @param  {Array} subs
      * @return {String}
      */
-    getMultiSubChained(subs) {
-        var text = "r/";
+    getMultiSubChained (subs) {
+        let text = "r/";
 
         subs.forEach((sub) => {
             text += sub + '+';
@@ -267,17 +487,19 @@ Module.register('MMM-Reddit', {
 
     /**
      * Get div containing all post data
+     * TODO: Refactor this - ideally implement some sort of templatization
      *
+     * @param  {Arrray} postSets
      * @return {Element}
      */
-    getContentSlider() {
-        var slider = document.createElement('div'),
+    getContentSlider (postSets) {
+        let slider = document.createElement('div'),
             idxCounter = 0;
 
-        slider.id = "mmm-reddit-slider";
+        slider.id = this.domElements.sliderId;
 
-        this.postSets.forEach((postSet, setIdx) => {
-            var tableWrapper = document.createElement('div'),
+        postSets.forEach((postSet, setIdx) => {
+            let tableWrapper = document.createElement('div'),
                 table = document.createElement('table');
 
             table.classList.add('table');
@@ -287,7 +509,7 @@ Module.register('MMM-Reddit', {
             }
 
             postSet.forEach((post, idx) => {
-                var postIndex = idx + idxCounter + 1;
+                let postIndex = idx + idxCounter + 1;
 
                 table.appendChild(this.createPostRow(post, postIndex));
             });
@@ -308,7 +530,7 @@ Module.register('MMM-Reddit', {
      * @param  {Number} postIndex
      * @return {Element}
      */
-    createPostRow(post, postIndex) {
+    createPostRow (post, postIndex) {
         if (this.config.displayType === 'image') {
             return this.createImageRow(post, postIndex);
         } else {
@@ -318,13 +540,14 @@ Module.register('MMM-Reddit', {
 
     /**
      * Create DOM element for headline based user config
+     * TODO: Refactor this - ideally implement some sort of templatization
      *
      * @param  {Object} post
      * @param  {Number} postIndex
      * @return {Element}
      */
-    createHeadlinetRow(post, postIndex) {
-        var hasTwoRows = this.isMultiTextRow(),
+    createHeadlinetRow (post, postIndex) {
+        let hasTwoRows = this.isMultiTextRow(),
             wrapper = document.createElement('div'),
             rowSpan = hasTwoRows ? '2' : '1',
             row1 = document.createElement('tr'),
@@ -371,13 +594,14 @@ Module.register('MMM-Reddit', {
 
     /**
      * Create DOM element for image based user config
+     * TODO: Refactor this - ideally implement some sort of templatization
      *
      * @param  {Object} post
      * @param  {Number} postIndex
      * @return {Element}
      */
-    createImageRow(post, postIndex) {
-        var hasDetailRow = this.isMultiTextRow(),
+    createImageRow (post, postIndex) {
+        let hasDetailRow = this.isMultiTextRow(),
             hasTitleRow = this.config.showTitle,
             totalRows = this.getImageRowCount(hasTitleRow, hasDetailRow),
             imageRowOnly = totalRows === 1,
@@ -437,7 +661,7 @@ Module.register('MMM-Reddit', {
      *
      * @return {Boolean}
      */
-    isMultiTextRow() {
+    isMultiTextRow () {
         return this.config.showNumComments || this.config.showGilded ||
             this.config.showAuthor || this.config.showSubreddit;
     },
@@ -449,8 +673,8 @@ Module.register('MMM-Reddit', {
      * @param  {Boolean} hasDetailRow
      * @return {Number}
      */
-    getImageRowCount(hasTitleRow, hasDetailRow) {
-        var rowCount = 1;
+    getImageRowCount (hasTitleRow, hasDetailRow) {
+        let rowCount = 1;
 
         rowCount += hasTitleRow ? 1 : 0;
         rowCount += hasDetailRow ? 1 : 0;
@@ -464,8 +688,8 @@ Module.register('MMM-Reddit', {
      * @param  {[type]} onlyOneRow
      * @return {[type]}
      */
-    getImageColCount(onlyOneRow) {
-        var colCount = 1;
+    getImageColCount (onlyOneRow) {
+        let colCount = 1;
 
         colCount += this.config.showRank && !onlyOneRow ? 1 : 0;
         colCount += this.config.showScore ? 1 : 0;
@@ -481,8 +705,8 @@ Module.register('MMM-Reddit', {
      * @param  {String|null} html
      * @return {Element}
      */
-    getFixedColumn(td, className, html) {
-        var div = document.createElement('div');
+    getFixedColumn (td, className, html) {
+        let div = document.createElement('div');
 
         if (this.helper.argumentExists(className)) {
             this.addClasses(div, className);
@@ -511,7 +735,7 @@ Module.register('MMM-Reddit', {
      * @param  {Element|String|null} html
      * @return {Element}
      */
-    appendIfShown(toShow, appendTo, element, className, html) {
+    appendIfShown (toShow, appendTo, element, className, html) {
         if (toShow) {
             if (this.helper.isString(element)) {
                 element = document.createElement(element);
@@ -542,8 +766,8 @@ Module.register('MMM-Reddit', {
      * @param  {String} spanType
      * @return {Element}
      */
-    getTd(spanCount, spanType) {
-        var td = document.createElement('td')
+    getTd (spanCount, spanType) {
+        let td = document.createElement('td')
 
         if (this.helper.argumentExists(spanCount)) {
             td[spanType + 'Span'] = spanCount;
@@ -559,7 +783,7 @@ Module.register('MMM-Reddit', {
      * @param {String|Array} classes
      * @return {void}
      */
-    addClasses(element, classes) {
+    addClasses (element, classes) {
         if (this.helper.isString(classes)) {
             element.classList.add(classes);
         } else if (Array.isArray(classes)) {
@@ -578,8 +802,8 @@ Module.register('MMM-Reddit', {
      * @param  {Number} maxHeight
      * @return {Element}
      */
-    getImage(source, width, maxHeight) {
-        var image;
+    getImage (source, width, maxHeight) {
+        let image;
 
         if (source.indexOf('http') > -1) {
             image = document.createElement('img');
@@ -606,7 +830,7 @@ Module.register('MMM-Reddit', {
      * @param  {Number} score
      * @return {Number|String}
      */
-    formatScore(score) {
+    formatScore (score) {
         if (score > 10000) {
             score = (score / 1000).toFixed(1) + 'k';
         }
@@ -619,21 +843,59 @@ Module.register('MMM-Reddit', {
      *
      * @return {void}
      */
-    setRotateInterval() {
-        if (this.rotateInterval !== null) {
-            clearInterval(this.rotator);
+    setRotateInterval () {
+        this.log(['setting rotator']);
+        this.log(['rotator', this.rotator]);
+        if (this.rotator !== null) {
+            this.log(['unset top']);
+            this.unsetRotateInterval();
         }
 
+        this.resetCurrentPostSetIndex();
+
         this.rotator = setInterval(() => {
-            var slider = document.getElementById('mmm-reddit-slider'),
+            let slider = document.getElementById(this.domElements.sliderId),
                 postSets = slider.children,
                 nextIndex = this.getNextPostSetIndex();
 
-            postSets[this.currentPostSetIndex].style.display = "none";
-            postSets[nextIndex].style.display = "initial";
+            // this.log(['index set', nextIndex]);
+            this.log(['index set', nextIndex]);
 
-            this.currentPostSetIndex = nextIndex;
+            if (nextIndex === 0 && this.waitingToDeploy && !this.config.forceImmediateUpdate) {
+                this.log(['waiting to deploy', this.waitingToDeploy]);
+                this.initializeRefreshDom(true);
+            } else {
+                postSets[this.currentPostSetIndex].style.display = "none";
+                postSets[nextIndex].style.display = "initial";
+
+                this.currentPostSetIndex = nextIndex;
+            }
         }, this.config.rotateInterval * 1000);
+
+        this.log(['rotator', this.rotator]);
+    },
+
+    /**
+     * Clear interval and for good measure set back to null
+     *
+     * @return {void}
+     */
+    unsetRotateInterval () {
+        clearInterval(this.rotator);
+        this.rotator = null;
+        this.log(['rotator', this.rotator]);
+    },
+
+    /**
+     * Set the currentPostSetIndex back to 0
+     * Should only be relevant in scenarios where we force an immediate update,
+     * but is good for posterity's sake even if an update isn't force on
+     * receiving new posts
+     *
+     * @return {void}
+     */
+    resetCurrentPostSetIndex () {
+        this.currentPostSetIndex = 0;
     },
 
     /**
@@ -642,8 +904,8 @@ Module.register('MMM-Reddit', {
      *
      * @return {Number}
      */
-    getNextPostSetIndex() {
-        var index = this.currentPostSetIndex + 1;;
+    getNextPostSetIndex () {
+        let index = this.currentPostSetIndex + 1;;
 
         if (index === this.postSets.length) {
             index = 0;
@@ -653,7 +915,25 @@ Module.register('MMM-Reddit', {
     },
 
     /**
+     * Wrapper for console log in order to keep debugging code
+     * for reuse, but have disabled unless explicitly set
+     *
+     * @param  {Array} toLog
+     * @return {void}
+     */
+    log (toLog) {
+        if (this.config.debug) {
+            if (this.helper.isScalar(toLog)) {
+                toLog = [toLog];
+            }
+
+            console.log.apply(null, toLog);
+        }
+    },
+
+    /**
      * Helper functions
+     *
      * @type {Object}
      */
     helper: {
@@ -663,7 +943,7 @@ Module.register('MMM-Reddit', {
          * @param  {mixed} arg
          * @return {Boolean}
          */
-        argumentExists(variable) {
+        argumentExists (variable) {
             return typeof variable !== 'undefined' && variable !== null;
         },
 
@@ -673,7 +953,7 @@ Module.register('MMM-Reddit', {
          * @param  {mixed}  variable
          * @return {Boolean}
          */
-        isString(variable) {
+        isString (variable) {
             return typeof variable === 'string' || variable instanceof String;
         },
 
@@ -683,7 +963,7 @@ Module.register('MMM-Reddit', {
          * @param  {mixed}  variable
          * @return {Boolean}
          */
-        isScalar(variable) {
+        isScalar (variable) {
             return (/boolean|number|string/).test(typeof variable);
         },
     }

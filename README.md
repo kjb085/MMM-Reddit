@@ -11,7 +11,7 @@ Just an installation of [Magic Mirror<sup>2</sup>](https://github.com/MichMich/M
 ## Installation ##
 
 1. Run `git clone https://github.com/kjb085/MMM-Reddit.git` in the directory `~/MagicMirror/modules`
-2. Add MMM-Reddit-Viewer to your config file `~/MagicMirror/config/config.js`
+2. Add MMM-Reddit to your config file `~/MagicMirror/config/config.js`
 
 ```
 {
@@ -74,6 +74,7 @@ Option  | Default | Description
 `width` | `400` | Number of pixels wide the module will take up on the display.
 `updateInterval` | `15` | Number of minutes until the set of current posts gets refreshed from reddit.
 `rotateInterval` | `30` | Number of seconds until the posts currently being displayed is substituted by the subsequent set.
+`forceImmediateUpdate` | `true` | When set to `true`, as soon as posts are received from reddit according to the updateInterval, posts are immediately rendered, regardless of what is currently on screen. When set to `false`, the module will allow the existing set to finish and the new \#1 post will be from the updated set of posts.<br><br><b>Note:</b> If this is set to `false`, it's a good idea to try to keep the show & count, rotateInterval, and updateInterval in good sync with this. For example, if you're using images, displaying 1 image with a count of 10 posts rotating every 30 seconds, it will take 5 minutes to cycle through a set. Therefore, ideally you'll want to set your updateInterval to a mutiple of 5 so that it's not waiting too long to update the posts as your update will appear somewhat inconsistent.
 
 #### Secondary ####
 
@@ -117,7 +118,7 @@ If you plan on modifying the existing code, these tools will be helpful as the t
 
 ## To Do ##
 
-There is no timeline or guarantee than any of these will be accomplished. Willing to review pull requests if anyone else wants to take these on.
+There is no timeline or guarantee than any of these will be accomplished. Will throughly review and test pull requests if anyone else wants to take any of these on.
 
 * Write tests
 * Allow widths other than pixels
