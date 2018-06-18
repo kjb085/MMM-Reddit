@@ -67,22 +67,24 @@ config: {
 Option  | Default | Description
 ------- | ------- | -------------
 `subreddit`  | `'all'` | Subreddit to pull content from.<br><br>Please enter `frontpage` to get content from the frontpage.<br>This value can also be an array of subreddits. Ex: `['funny', 'jokes', 'tifu']`
-`type`  | `hot` | Filter applied to searches.<br><br>Options: `hot`, `top`, `new`, `rising`, `controversial`
-`displayType` | `headlines` | Format in which the reddit posts are displayed. See below for configurations specific to each display type.<br><br>Options: `headlines`, `images`
+`type`  | `hot` | Filter applied to searches.<br><br>**Options:** `hot`, `top`, `new`, `rising`, `controversial`
+`displayType` | `headlines` | Format in which the reddit posts are displayed. See below for configurations specific to each display type.<br><br>**Options:** `headlines`, `images`
 `count` | `10` | Number of posts to get from reddit.
 `show` | `5` | Number of posts to be displayed at a time.<br><br>If this number is lower than `count`, then the posts will be rotated after a given number of seconds configured with `rotateInterval`.
 `width` | `400` | Number of pixels wide the module will take up on the display.
 `updateInterval` | `15` | Number of minutes until the set of current posts gets refreshed from reddit.
 `rotateInterval` | `30` | Number of seconds until the posts currently being displayed is substituted by the subsequent set.
-`forceImmediateUpdate` | `true` | When set to `true`, as soon as posts are received from reddit according to the updateInterval, posts are immediately rendered, regardless of what is currently on screen. When set to `false`, the module will allow the existing set to finish and the new \#1 post will be from the updated set of posts.<br><br><b>Note:</b> If this is set to `false`, it's a good idea to try to keep the show & count, rotateInterval, and updateInterval in good sync with this. For example, if you're using images, displaying 1 image with a count of 10 posts rotating every 30 seconds, it will take 5 minutes to cycle through a set. Therefore, ideally you'll want to set your updateInterval to a mutiple of 5 so that it's not waiting too long to update the posts as your update will appear somewhat inconsistent.
+`characterLimit` | `false` | Set a character limit for post titles. Titles that are truncated will have "..." appended to the title to indicate it.
+`titleReplacements` | `[]` | An array of objects used to make replacements to words or phrases in a title. Title replacements will occur prior to the character limit being enforced, so these can be used to help shorten post titles or just for fun.<br><br>**Example:** `[{toReplace: 'millennials', replacement: 'snake people', caseSensitive: false'}, {toReplace: 'politicians', replacement: 'lizard people'}]`<br><br>**Note:** `caseSensitive` defaults to true. Also accepts regular expressions for advanced find and replace, but do not include preceding and trailing forward slashes. For those not familiar with regular expressions, see [here](https://regexr.com/).
+`forceImmediateUpdate` | `true` | When set to `true`, as soon as posts are received from reddit according to the updateInterval, posts are immediately rendered, regardless of what is currently on screen. When set to `false`, the module will allow the existing set to finish and the new \#1 post will be from the updated set of posts.<br><br><b>Note:</b> If this is set to `false`, it's a good idea to try to keep the show &amp; count, rotateInterval, and updateInterval in good sync with this. For example, if you're using images, displaying 1 image with a count of 10 posts rotating every 30 seconds, it will take 5 minutes to cycle through a set. Therefore, ideally you'll want to set your updateInterval to a mutiple of 5 so that it's not waiting too long to update the posts as your update will appear somewhat inconsistent.
 
 #### Secondary ####
 
 Option  | Default | Description
 ------- | ------- | -------------
 `showHeader` | `true` | Show the module header.
-`headerType` | `sentence` | Format in which the header is displayed.<br><br>Options:<br>1. Sentence (Ex: Top Posts from r/funny, r/jokes, and r/tifu)<br>2. Chained (Ex: Top Posts from r/funny+jokes+tifu)
-`showAll` | `false` | Alias to show all of the below "show" toggles. `showHeader` is the only toggle excluded from this.<br><br>Note: If this toggle is set, it will ignore all configurations set to false.
+`headerType` | `sentence` | Format in which the header is displayed.<br><br>**Options:**<br>1. Sentence (Ex: Top Posts from r/funny, r/jokes, and r/tifu)<br>2. Chained (Ex: Top Posts from r/funny+jokes+tifu)
+`showAll` | `false` | Alias to show all of the below "show" toggles. `showHeader` is the only toggle excluded from this.<br><br>**Note:** If this toggle is set, it will ignore all configurations set to false.
 `showRank` | `true` | Show number preceding posts indicating what order it was returned from reddit.
 `showScore` | `true` | Show the total upvotes less downvotes currently attributed to a post.
 `showNumComments` | `true` | Show the total number of comments on a post.
@@ -96,7 +98,7 @@ Option  | Default | Description
 Option  | Default | Description
 ------- | ------- | -------------
 `maxImageHeight` | `500` | Maximum height that an image is allowed to take up.
-`imageQuality` | `mid-high` | Resolution of images to display.<br><br>Options: `low`, `mid`, `mid-high`, `high`
+`imageQuality` | `mid-high` | Resolution of images to display.<br><br>**Options:** `low`, `mid`, `mid-high`, `high`
 `showTitle` | `true` | Show the title of the given post. This attribute is also included in `showAll`.
 
 
