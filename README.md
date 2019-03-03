@@ -112,7 +112,6 @@ Option  | Default | Description
 
 If you plan on modifying the existing code, these tools will be helpful as the the css was created using sass. Once you have npm installed, simply run `npm install` for the subsequent npm packages to be installed.
 
-* npm
 * node-sass
 * nodemon
 
