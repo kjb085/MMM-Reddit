@@ -25,7 +25,7 @@ Just an installation of [Magic Mirror<sup>2</sup>](https://github.com/MichMich/M
 
 ## Examples ##
 
-#### Display Type: Images ####
+#### Display Type: Image ####
 
 ![images](https://i.imgur.com/dvfqHiS.png)
 
@@ -68,7 +68,7 @@ Option  | Default | Description
 ------- | ------- | -------------
 `subreddit`  | `'all'` | Subreddit to pull content from.<br><br>Please enter `frontpage` to get content from the frontpage.<br>This value can also be an array of subreddits. Ex: `['funny', 'jokes', 'tifu']`
 `type`  | `hot` | Filter applied to searches.<br><br>**Options:** `hot`, `top`, `new`, `rising`, `controversial`
-`displayType` | `headlines` | Format in which the reddit posts are displayed. See below for configurations specific to each display type.<br><br>**Options:** `headlines`, `images`
+`displayType` | `headlines` | Format in which the reddit posts are displayed. See below for configurations specific to each display type.<br><br>**Options:** `headlines`, `image`
 `count` | `10` | Number of posts to get from reddit.
 `show` | `5` | Number of posts to be displayed at a time.<br><br>If this number is lower than `count`, then the posts will be rotated after a given number of seconds configured with `rotateInterval`.
 `width` | `400` | Number of pixels wide the module will take up on the display.
@@ -98,7 +98,7 @@ Option  | Default | Description
 Option  | Default | Description
 ------- | ------- | -------------
 `maxImageHeight` | `500` | Maximum height that an image is allowed to take up.
-`imageQuality` | `mid-high` | Resolution of images to display.<br><br>**Options:** `low`, `mid`, `mid-high`, `high`
+`imageQuality` | `mid-high` | Resolution of image to display.<br><br>**Options:** `low`, `mid`, `mid-high`, `high`
 `showTitle` | `true` | Show the title of the given post. This attribute is also included in `showAll`.
 
 
