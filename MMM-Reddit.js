@@ -282,13 +282,11 @@ Module.register('MMM-Reddit', {
 
     /**
      * Return a string to be used as header text
-     * TODO: Refactor this - ideally implement some sort of templatization
      *
-     * @return {String}
+     * @return {String|void}
      */
     getHeader () {
         if (this.config.showHeader) {
-            // return `${this.config.type} posts from r/${this.config.subreddit}`;
             return this.getHeaderText();
         }
     },
@@ -383,13 +381,6 @@ Module.register('MMM-Reddit', {
 
         wrapperDiv.id = this.domElements.wrapperId;
         wrapperDiv.style.width = this.config.width + 'px';
-
-        // Remove when getHeader is debugged
-        if (this.config.showHeader) {
-            // header.innerHTML = `${this.config.type} posts from r/${this.config.subreddit}`;
-            headerElement.innerHTML = this.getHeaderText();
-            wrapperDiv.appendChild(headerElement);
-        }
 
         if (!this.hasValidPosts) {
             let text = document.createElement('div');
