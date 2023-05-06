@@ -3,7 +3,7 @@
  *
  * By kjb085 https://github.com/kjb085/MMM-Reddit
  */
-const request = require('request');
+const fetch = require('node-fetch');
 const NodeHelper = require('node_helper');
 
 module.exports = NodeHelper.create({
@@ -57,46 +57,45 @@ module.exports = NodeHelper.create({
      *
      * @return {void}
      */
-    getData () {
+    async getData () {
         let url = this.getUrl(this.config),
             posts = [],
             body;
 
-        request({ url: url }, (error, response, body) => {
-            if (response.statusCode === 200) {
-                body = JSON.parse(body);
-                if (typeof body.data !== "undefined") {
-                    if (typeof body.data.children !== "undefined") {
-                        body.data.children.forEach((post) => {
-                            let temp = {};
+            var response = await fetch(url)
+            if (!response.status === 200) {
+                console.log(`Error fetching country stats: ${response.statusCode} ${response.statusText}`)
+            }
 
-                            temp.title = this.formatTitle(post.data.title);
-                            temp.score = post.data.score;
-                            temp.thumbnail = post.data.thumbnail;
-                            temp.src = this.getImageUrl(post.data.preview, post.data.thumbnail),
-                            temp.gilded = post.data.gilded;
-                            temp.num_comments = post.data.num_comments;
-                            temp.subreddit = post.data.subreddit;
-                            temp.author = post.data.author;
+            body = await response.json()
+            if (typeof body.data !== "undefined") {
+                if (typeof body.data.children !== "undefined") {
+                    body.data.children.forEach((post) => {
+                        let temp = {};
 
-                            // Skip image posts that do not have images
-                            if (this.config.displayType !== 'image' || temp.src !== null) {
-                                posts.push(temp);
-                            }
-                        });
+                        temp.title = this.formatTitle(post.data.title);
+                        temp.score = post.data.score;
+                        temp.thumbnail = post.data.thumbnail;
+                        temp.src = this.getImageUrl(post.data.preview, post.data.thumbnail),
+                        temp.gilded = post.data.gilded;
+                        temp.num_comments = post.data.num_comments;
+                        temp.subreddit = post.data.subreddit;
+                        temp.author = post.data.author;
 
-                        this.sendData({posts: posts});
-                    } else {
-                        this.sendError('No posts returned. Ensure the subreddit name is spelled correctly. ' +
-                            'Private subreddits are also inaccessible');
-                    }
+                        // Skip image posts that do not have images
+                        if (this.config.displayType !== 'image' || temp.src !== null) {
+                            posts.push(temp);
+                        }
+                    });
+
+                    this.sendData({posts: posts});
                 } else {
-                    this.sendError(['Invalid response body', body]);
+                    this.sendError('No posts returned. Ensure the subreddit name is spelled correctly. ' +
+                        'Private subreddits are also inaccessible');
                 }
             } else {
-                this.sendError('Request status code: ' + response.statusCode);
+                this.sendError(['Invalid response body', body]);
             }
-        });
     },
 
     /**

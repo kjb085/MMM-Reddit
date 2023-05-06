@@ -9,8 +9,7 @@
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "node-sass": "^4.9.0",
-    "nodemon": "^1.17.5"
+  "dependencies": {
+    "node-fetch": "^2.6.1"
   }
 }
